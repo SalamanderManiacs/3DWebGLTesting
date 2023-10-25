@@ -50,5 +50,11 @@ scene.addObject(obj1);
 scene.refreshBuffers();
 plog(scene.vertexBuffer);
 plog(scene.colorBuffer);
+plog("second test");
+plog(scene);
+plog(scene.gl);
+plog("fin");
 
 scene.render();
+
+plog("render ran");
