@@ -48,11 +48,16 @@ var obj1 = new gll.object({
 scene.addObject(obj1);
 
 scene.refreshBuffers();
-plog(scene.vertexBuffer);
-plog(scene.colorBuffer);
+plog("first test");
+try {
+  plog(scene.vertexBuffer);
+  plog(scene.colorBuffer);
+} catch(e) {}
 plog("second test");
-plog(scene);
-plog(scene.gl);
+try {
+  plog(scene);
+  plog(scene.gl);
+} catch(e) {}
 plog("fin");
 
 scene.render();
