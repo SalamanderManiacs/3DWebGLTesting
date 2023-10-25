@@ -9,8 +9,8 @@ function resizeCanvas() {
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 }
 
-function log(output) {
-  document.getElementById("output").innerHTML = output;
+function plog(output) {
+  document.getElementById("output").innerHTML += " "+output;
 }
 
 resizeCanvas();
@@ -48,7 +48,7 @@ var obj1 = new gll.object({
 scene.addObject(obj1);
 
 scene.refreshBuffers();
-log(scene.vertexBuffer);
-log(scene.colorBuffer)
+plog(scene.vertexBuffer);
+plog(scene.colorBuffer);
 
 scene.render();
