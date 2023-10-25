@@ -203,7 +203,6 @@ var glLib = function() {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.useProgram(this.program);
     var buffers = this.getAllObjectBuffers();
-    console.log(buffers);
     this.refreshBuffers(buffers);
 
     this.gl.enableVertexAttribArray(this.vertexLocation);
