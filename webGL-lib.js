@@ -1,208 +1,212 @@
-function generateBasicUUID() {
+var glLib = function() {
+  this.generateBasicUUID = function() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16;
-        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      var r = Math.random() * 16;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
-}
+  }
 
 
 
-var face = function(glArr, options) {
-	this.points = glArr;
-    this.color = options.color || [255,255,255];
-}
-face.prototype.toString = function() {
-    return "face["+this.points+"]";
-}
+  this.face = function(glArr, options) {
+    this.points = glArr;
+    this.color = options.color || [255, 255, 255];
+  }
+  this.face.prototype.toString = function() {
+    return "face[" + this.points + "]";
+  }
 
 
-
-var mesh = function(faces) {
+  this.mesh = function(faces) {
     this.faces = faces;
-}
-mesh.prototype.toGLBuffer = function() {
-	var obj = {
-		vertexArr : [],
-		colorArr : [],
-	}
-    for (var i = 0; i < this.faces.length; i++) {
-        var points = this.faces[i].points;
-        obj.vertexArr = obj.vertexArr.concat(points);
-		for(var n = 0; n < points.length; n++) {
-			obj.colorArr = obj.colorArr.concat(this.faces[i].color);
-		}
+  }
+  this.mesh.prototype.toGLBuffer = function() {
+    var obj = {
+      vertexArr: [],
+      colorArr: [],
     }
-	return obj;
-}
-mesh.prototype.toString = function() {
+    for (var i = 0; i < this.faces.length; i++) {
+      var points = this.faces[i].points;
+      obj.vertexArr = obj.vertexArr.concat(points);
+      for (var n = 0; n < points.length / 3; n++) {
+        obj.colorArr = obj.colorArr.concat(this.faces[i].color);
+      }
+    }
+    return obj;
+  }
+  this.mesh.prototype.toString = function() {
     var f = "mesh[";
     for (var i = 0; i < this.faces.length; i++) {
-        f+=this.faces[i].toString();
-        if (i+1 < this.faces.length) {
-            f+=",";
-        }
+      f += this.faces[i].toString();
+      if (i + 1 < this.faces.length) {
+        f += ",";
+      }
     }
-    f+="]";
+    f += "]";
     return f;
-}
+  }
 
 
 
-var object = function(options) {
+  this.object = function(options) {
     this.mesh = options.mesh || new mesh([new face[
-		0, 0,
-		0, 1,
-		1, 1
-	]]);
+      0, 0,
+      0, 1,
+      1, 1
+    ]]);
     // this.rotation = options.rotation || new vector3(0,0,0);
     // this.position = options.position || new vector3(0,0,0);
     // this.scale = options.scale || new vector3(1,1,1);
     // this.opacity = options.opacity || 1;
     this.id = options.id || generateBasicUUID();
-}
-object.prototype.getGLBuffer = function() {
+  }
+  this.object.prototype.getGLBuffer = function() {
     return this.mesh.toGLBuffer();
-}
+  }
 
 
 
-var scene = function(settings) {
-	this.settings = settings || {};
-	this.objects = {};
-	this.shaderSources = {
-		vs : `#version 300 es
-			
-			attribute vec4 a_position;
-			attribute vec4 a_color;
+  this.scene = function(settings) {
+    this.settings = settings || {};
+    this.objects = {};
+    this.shaderSources = {
+      vs: `
 
-			varying vec4 v_color;
+        attribute vec4 a_position;
+        attribute vec4 a_color;
 
-			void main() {
-				gl_Position =  a_position;
+        varying vec4 v_color;
 
-				v_color = a_color;
-			}
-			
-		`,
-		fs : `#version 300 es
-		
-			precision highp float;
-			
-			varying vec4 v_color;
- 
-			void main() {
-				gl_FragColor = v_color;
-			}
-			
-		`
-	}
-	this.program;
-	this.canvas;
-	this.gl;
-	this.fs;
-	this.vs;
-	this.vertexLocation;
-	this.vertexBuffer;
-	this.colorLocation;
-	this.colorBuffer;
-}
-scene.prototype.addObject = function(object) {
+        void main() {
+          gl_Position = a_position;
+
+          v_color = a_color;
+        }
+
+      `,
+      fs: `
+
+        precision highp float;
+
+        varying vec4 v_color;
+
+        void main() {
+          gl_FragColor = v_color;
+        }
+
+      `
+    }
+    this.program;
+    this.canvas;
+    this.gl;
+    this.fs;
+    this.vs;
+    this.vertexLocation;
+    this.vertexBuffer;
+    this.colorLocation;
+    this.colorBuffer;
+  }
+  this.scene.prototype.addObject = function(object) {
     this.objects[object.id] = object;
-}
-scene.prototype.getObjectByID = function(id) {
+  }
+  this.scene.prototype.getObjectByID = function(id) {
     return this.objects[id] || new object({});
-};
-scene.prototype.getAllObjectBuffers = function() {
-	var obj = {
-		vertexArr : [],
-		colorArr : [],
-	}
+  };
+  this.scene.prototype.getAllObjectBuffers = function() {
+    var obj = {
+      vertexArr: [],
+      colorArr: [],
+    }
     var objs = Object.values(this.objects);
     for (var i = 0; i < objs.length; i++) {
-        var iobj = objs[i].getGLBuffer();
-        obj.vertexArr = obj.vertexArr.concat(iobj.vertexArr);
-		obj.colorArr = obj.colorArr.concat(iobj.colorArr);
+      var iobj = objs[i].getGLBuffer();
+      obj.vertexArr = obj.vertexArr.concat(iobj.vertexArr);
+      obj.colorArr = obj.colorArr.concat(iobj.colorArr);
     }
-}
-scene.prototype.setCustomShaderSources = function(vs, fs) {
-	this.shaderSources.vs = vs;
-	this.shaderSources.fs = fs;
-}
-scene.prototype.bindCanvas = function(canvas) {
-	this.canvas = canvas;
-	this.gl = canvas.getContext("webgl2");
-}
-scene.compileShader = function(type) {
-	var source;
-	if (type = gl.VERTEX_SHADER) {
-		source = this.shaderSources.vs;
-	} else if (type = gl.FRAGMENT_SHADER) {
-		source = this.shaderSources.fs;
-	}
-  	var shader = this.gl.createShader(type);
-  	this.gl.shaderSource(shader, source);
-  	this.gl.compileShader(shader);
-  	var success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS);
-  	if (success) {
-    	if (type = this.gl.VERTEX_SHADER) {
-			this.vs = this.shaderSources.vs;
-		} else if (type = this.gl.FRAGMENT_SHADER) {
-			this.fs = this.shaderSources.fs;
-		}
-		return true;
-  	} else {
-		this.gl.deleteShader(shader);
-		return false;
-	}
-}
-scene.compileProgram = function() {
-	var vertexShader = this.createShader(this.gl.VERTEX_SHADER);
-	if (!vertexShader) {
-		return false;
-	}
-	var fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER);
-	if (!fragmentShader) {
-		return false;
-	}
-  	var program = this.gl.createProgram();
-  	this.gl.attachShader(program, this.vs);
-  	this.gl.attachShader(program, this.fs);
- 	this.gl.linkProgram(program);
-  	var success = this.gl.getProgramParameter(program, this.gl.LINK_STATUS);
-  	if (success) {
-    	this.program = program;
-		return true;
-  	} else {
-		this.gl.deleteProgram(program);
-		return false;
-	}
-}
-scene.prototype.setupLocations = function() {
-	this.vertexLocation = this.gl.getAttribLocation(this.program, "a_position");
-	this.colorLocation = this.getAttribLocation(this.program, "a_color");
-}
-scene.prototype.setupBuffers = function() {
-	this.vertexBuffer = this.gl.createBuffer();
-	this.colorBuffer = this.gl.createBuffer();
-}
-scene.prototype.prep = function() {
-	this.compileProgram();
-	this.setupLocations();
-	this.setupBuffers();
-}
-scene.prototype.refreshBuffers = function(buffers) {
-	this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-	this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(buffers.vertexArr), this.gl.DYNAMIC_DRAW);
-	this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-	this.gl.bufferData(this.gl.ARRAY_BUFFER, new Uint8Array(buffers.colorArr), this.gl.DYNAMIC_DRAW);
-}
-scene.prototype.render = function() {
-	this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-	this.gl.useProgram(this.program);
-	var buffers = this.getAllObjectBuffers();
-	this.refreshBuffers(buffers);
-	
-	this.gl.enableVertexAttribArray(this.vertexLocation);
+    return obj;
+  }
+  this.scene.prototype.setCustomShaderSources = function(vs, fs) {
+    this.shaderSources.vs = vs;
+    this.shaderSources.fs = fs;
+  }
+  this.scene.prototype.bindCanvas = function(canvas) {
+    this.canvas = canvas;
+    this.gl = canvas.getContext("webgl2");
+  }
+  this.scene.prototype.compileShader = function(type) {
+    var source;
+    if (type == this.gl.VERTEX_SHADER) {
+      source = this.shaderSources.vs;
+    } else if (type == this.gl.FRAGMENT_SHADER) {
+      source = this.shaderSources.fs;
+    }
+    var shader = this.gl.createShader(type);
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    var success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS);
+    if (success) {
+      if (type == this.gl.VERTEX_SHADER) {
+        this.vs = shader;
+      } else if (type == this.gl.FRAGMENT_SHADER) {
+        this.fs = shader;
+      }
+      return true;
+    } else {
+      alert("Error Compiling Shader " + this.gl.getShaderInfoLog(shader));
+      this.gl.deleteShader(shader);
+      return false;
+    }
+  }
+  this.scene.prototype.compileProgram = function() {
+    var vertexShader = this.compileShader(this.gl.VERTEX_SHADER);
+    if (!vertexShader) {
+      return false;
+    }
+    var fragmentShader = this.compileShader(this.gl.FRAGMENT_SHADER);
+    if (!fragmentShader) {
+      return false;
+    }
+    var program = this.gl.createProgram();
+    this.gl.attachShader(program, this.vs);
+    this.gl.attachShader(program, this.fs);
+    this.gl.linkProgram(program);
+    var success = this.gl.getProgramParameter(program, this.gl.LINK_STATUS);
+    if (success) {
+      this.program = program;
+      return true;
+    } else {
+      this.gl.deleteProgram(program);
+      return false;
+    }
+  }
+  this.scene.prototype.setupLocations = function() {
+    this.vertexLocation = this.gl.getAttribLocation(this.program, "a_position");
+    this.colorLocation = this.gl.getAttribLocation(this.program, "a_color");
+  }
+  this.scene.prototype.setupBuffers = function() {
+    this.vertexBuffer = this.gl.createBuffer();
+    this.colorBuffer = this.gl.createBuffer();
+  }
+  this.scene.prototype.prep = function() {
+    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    this.compileProgram();
+    this.setupLocations();
+    this.setupBuffers();
+  }
+  this.scene.prototype.refreshBuffers = function(buffers) {
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(buffers.vertexArr), this.gl.DYNAMIC_DRAW);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Uint8Array(buffers.colorArr), this.gl.DYNAMIC_DRAW);
+  }
+  this.scene.prototype.render = function() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.useProgram(this.program);
+    var buffers = this.getAllObjectBuffers();
+    console.log(buffers);
+    this.refreshBuffers(buffers);
+
+    this.gl.enableVertexAttribArray(this.vertexLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
     var size = 3;
     var type = this.gl.FLOAT;
@@ -210,8 +214,8 @@ scene.prototype.render = function() {
     var stride = 0;
     var offset = 0;
     this.gl.vertexAttribPointer(this.vertexLocation, size, type, normalize, stride, offset);
-	
-	this.gl.enableVertexAttribArray(this.colorLocation);
+
+    this.gl.enableVertexAttribArray(this.colorLocation);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
     var size = 3;
     var type = this.gl.UNSIGNED_BYTE;
@@ -219,38 +223,40 @@ scene.prototype.render = function() {
     var stride = 0;
     var offset = 0;
     this.gl.vertexAttribPointer(this.colorLocation, size, type, normalize, stride, offset);
-	
-	var primitiveType = gl.TRIANGLES;
+
+    var primitiveType = this.gl.TRIANGLES;
     var offset = 0;
     var count = buffers.vertexArr.length;
     this.gl.drawArrays(primitiveType, offset, count);
+  }
+  this.scene.prototype.renderNoRefresh = function() {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.useProgram(this.program);
+    var buffers = this.getAllObjectBuffers();
+
+    this.gl.enableVertexAttribArray(this.vertexLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+    var size = 3;
+    var type = this.gl.FLOAT;
+    var normalize = false;
+    var stride = 0;
+    var offset = 0;
+    this.gl.vertexAttribPointer(this.vertexLocation, size, type, normalize, stride, offset);
+
+    this.gl.enableVertexAttribArray(this.colorLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+    var size = 3;
+    var type = this.gl.UNSIGNED_BYTE;
+    var normalize = false;
+    var stride = 0;
+    var offset = 0;
+    this.gl.vertexAttribPointer(this.colorLocation, size, type, normalize, stride, offset);
+
+    var primitiveType = this.gl.TRIANGLES;
+    var offset = 0;
+    var count = buffers.vertexArr.length / 3;
+    this.gl.drawArrays(primitiveType, offset, count);
+  }
 }
 
-scene.prototype.renderNoRefresh = function() {
-	this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-	this.gl.useProgram(this.program);
-	var buffers = this.getAllObjectBuffers();
-	
-	this.gl.enableVertexAttribArray(this.vertexLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-    var size = 3;
-    var type = this.gl.FLOAT;
-    var normalize = false;
-    var stride = 0;
-    var offset = 0;
-    this.gl.vertexAttribPointer(this.vertexLocation, size, type, normalize, stride, offset);
-	
-	this.gl.enableVertexAttribArray(this.colorLocation);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-    var size = 3;
-    var type = this.gl.UNSIGNED_BYTE;
-    var normalize = false;
-    var stride = 0;
-    var offset = 0;
-    this.gl.vertexAttribPointer(this.colorLocation, size, type, normalize, stride, offset);
-	
-	var primitiveType = this.gl.TRIANGLES;
-    var offset = 0;
-    var count = buffers.vertexArr.length;
-    this.gl.drawArrays(primitiveType, offset, count);
-}
+export { glLib };
