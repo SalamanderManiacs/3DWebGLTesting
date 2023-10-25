@@ -1,24 +1,17 @@
-//handle resizes
+log("Main loaded.");
+
 function resizeCanvas() {
   var canvas = document.getElementById("webGLCanvas");
   var viewportWidth = document.documentElement.clientWidth;
   var viewportHeight = document.documentElement.clientHeight;
   canvas.width = viewportWidth;
   canvas.height = viewportHeight;
-  var gl = canvas.getContext("webgl2");
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 }
-
-function log(output) {
-  document.getElementById("output").innerHTML = output;
-}
-
 resizeCanvas();
+
 window.addEventListener('resize', resizeCanvas);
 
-import { glLib } from './webGL-lib.js'
-
-var gll = new glLib();
+var gll = new GLLib();
 
 var scene = new gll.scene();
 var canvas = document.getElementById("webGLCanvas");
@@ -46,9 +39,5 @@ var obj1 = new gll.object({
 })
 
 scene.addObject(obj1);
-
-scene.refreshBuffers();
-log(scene.vertexBuffer);
-log(scene.colorBuffer)
 
 scene.render();
