@@ -7,7 +7,7 @@ body {
   overflow: hidden;
   background-color: white;
 }
-  
+
 #webGLCanvas {
   top: 0px;
   left: 0px;
@@ -17,6 +17,7 @@ body {
   overflow: hidden;
   z-index: 10;
 }
+
 #console {
   bottom: 0px;
   left: 0px;

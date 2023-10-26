@@ -21,7 +21,7 @@
       document.getElementById("consoleOutput").innerHTML += "<br>" + new Date().toISOString() + " - " + message;
     }
     var h = false;
-    document.body.onkeyup = function(e) {
+    document.body.onkeyup = function (e) {
       if (e.key == " " || e.code == "Space" || e.keyCode == 32) {
         h = !h;
         document.getElementById("console").hidden = h;

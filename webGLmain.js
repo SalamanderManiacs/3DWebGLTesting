@@ -21,22 +21,22 @@ scene.prep();
 var obj1 = new gll.object({
   mesh: new gll.mesh([
     new gll.face([
-      -0.5, 0.5, 0,
-      0.5, 0.5, 0,
       -0.5, -0.5, 0,
+      0.5, 0.5, 0,
+      -0.5, 0.5, 0,
     ], {
       color: [225, 25, 25]
     }),
     new gll.face([
-      0.5, -0.5, 0,
-      -0.5, -0.5, 0,
       0.5, 0.5, 0,
+      -0.5, -0.5, 0,
+      0.5, -0.5, 0,
     ], {
       color: [25, 225, 25]
     })
   ]),
   id: "obj1"
-})
+});
 
 scene.addObject(obj1);
 
