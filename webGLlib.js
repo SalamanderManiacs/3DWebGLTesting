@@ -86,6 +86,90 @@ function GLLib() {
         b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33,
       ];
     }
+    this.inverse = function(m) {
+      var m00 = m[0 * 4 + 0];
+      var m01 = m[0 * 4 + 1];
+      var m02 = m[0 * 4 + 2];
+      var m03 = m[0 * 4 + 3];
+      var m10 = m[1 * 4 + 0];
+      var m11 = m[1 * 4 + 1];
+      var m12 = m[1 * 4 + 2];
+      var m13 = m[1 * 4 + 3];
+      var m20 = m[2 * 4 + 0];
+      var m21 = m[2 * 4 + 1];
+      var m22 = m[2 * 4 + 2];
+      var m23 = m[2 * 4 + 3];
+      var m30 = m[3 * 4 + 0];
+      var m31 = m[3 * 4 + 1];
+      var m32 = m[3 * 4 + 2];
+      var m33 = m[3 * 4 + 3];
+      var tmp_0  = m22 * m33;
+      var tmp_1  = m32 * m23;
+      var tmp_2  = m12 * m33;
+      var tmp_3  = m32 * m13;
+      var tmp_4  = m12 * m23;
+      var tmp_5  = m22 * m13;
+      var tmp_6  = m02 * m33;
+      var tmp_7  = m32 * m03;
+      var tmp_8  = m02 * m23;
+      var tmp_9  = m22 * m03;
+      var tmp_10 = m02 * m13;
+      var tmp_11 = m12 * m03;
+      var tmp_12 = m20 * m31;
+      var tmp_13 = m30 * m21;
+      var tmp_14 = m10 * m31;
+      var tmp_15 = m30 * m11;
+      var tmp_16 = m10 * m21;
+      var tmp_17 = m20 * m11;
+      var tmp_18 = m00 * m31;
+      var tmp_19 = m30 * m01;
+      var tmp_20 = m00 * m21;
+      var tmp_21 = m20 * m01;
+      var tmp_22 = m00 * m11;
+      var tmp_23 = m10 * m01;
+  
+      var t0 = (tmp_0 * m11 + tmp_3 * m21 + tmp_4 * m31) -
+          (tmp_1 * m11 + tmp_2 * m21 + tmp_5 * m31);
+      var t1 = (tmp_1 * m01 + tmp_6 * m21 + tmp_9 * m31) -
+          (tmp_0 * m01 + tmp_7 * m21 + tmp_8 * m31);
+      var t2 = (tmp_2 * m01 + tmp_7 * m11 + tmp_10 * m31) -
+          (tmp_3 * m01 + tmp_6 * m11 + tmp_11 * m31);
+      var t3 = (tmp_5 * m01 + tmp_8 * m11 + tmp_11 * m21) -
+          (tmp_4 * m01 + tmp_9 * m11 + tmp_10 * m21);
+  
+      var d = 1.0 / (m00 * t0 + m10 * t1 + m20 * t2 + m30 * t3);
+  
+      return [
+        d * t0,
+        d * t1,
+        d * t2,
+        d * t3,
+        d * ((tmp_1 * m10 + tmp_2 * m20 + tmp_5 * m30) -
+              (tmp_0 * m10 + tmp_3 * m20 + tmp_4 * m30)),
+        d * ((tmp_0 * m00 + tmp_7 * m20 + tmp_8 * m30) -
+              (tmp_1 * m00 + tmp_6 * m20 + tmp_9 * m30)),
+        d * ((tmp_3 * m00 + tmp_6 * m10 + tmp_11 * m30) -
+              (tmp_2 * m00 + tmp_7 * m10 + tmp_10 * m30)),
+        d * ((tmp_4 * m00 + tmp_9 * m10 + tmp_10 * m20) -
+              (tmp_5 * m00 + tmp_8 * m10 + tmp_11 * m20)),
+        d * ((tmp_12 * m13 + tmp_15 * m23 + tmp_16 * m33) -
+              (tmp_13 * m13 + tmp_14 * m23 + tmp_17 * m33)),
+        d * ((tmp_13 * m03 + tmp_18 * m23 + tmp_21 * m33) -
+              (tmp_12 * m03 + tmp_19 * m23 + tmp_20 * m33)),
+        d * ((tmp_14 * m03 + tmp_19 * m13 + tmp_22 * m33) -
+              (tmp_15 * m03 + tmp_18 * m13 + tmp_23 * m33)),
+        d * ((tmp_17 * m03 + tmp_20 * m13 + tmp_23 * m23) -
+              (tmp_16 * m03 + tmp_21 * m13 + tmp_22 * m23)),
+        d * ((tmp_14 * m22 + tmp_17 * m32 + tmp_13 * m12) -
+              (tmp_16 * m32 + tmp_12 * m12 + tmp_15 * m22)),
+        d * ((tmp_20 * m32 + tmp_12 * m02 + tmp_19 * m22) -
+              (tmp_18 * m22 + tmp_21 * m32 + tmp_13 * m02)),
+        d * ((tmp_18 * m12 + tmp_23 * m32 + tmp_15 * m02) -
+              (tmp_22 * m32 + tmp_14 * m02 + tmp_19 * m12)),
+        d * ((tmp_22 * m22 + tmp_16 * m02 + tmp_21 * m12) -
+              (tmp_20 * m12 + tmp_23 * m22 + tmp_17 * m02))
+      ];
+    }
     this.translationMatrix = function(tx, ty, tz) {
       return [
          1,  0,  0,  0,
@@ -157,7 +241,10 @@ function GLLib() {
 
   this.face = function (glArr, options) {
     this.points = glArr;
-    this.color = options.color || [1, 1, 1];
+    this.color = options.color || [0, 0, 0, 255];
+    if (this.color.length == 3) {
+      this.color.push(255);
+    }
   };
   this.face.prototype.toString = function () {
     return "face[" + this.points + "]";
@@ -165,7 +252,7 @@ function GLLib() {
 
 
 
-  this.rectMesh3D = function(options) {
+  this.rectMesh3D = function(gll, options) {
     var color = options.color || [[255,255,255]];
     var c1,c2,c3,c4,c5,c6;
     if (color.length == 1) {
@@ -183,6 +270,107 @@ function GLLib() {
       c5 = color[4];
       c6 = color[5];
     }
+    return new gll.mesh([
+      //top
+      new gll.face([
+        -1, 1, -1,
+        -1, 1, 1,
+        1, 1, -1,
+      ], {
+        color: c1
+      }),
+      new gll.face([
+        1, 1, 1,
+        1, 1, -1,
+        -1, 1, 1,
+      ], {
+        color: c1
+      }),
+
+      //bottom
+      new gll.face([
+        -1, -1, -1,
+        1, -1, -1,
+        -1, -1, 1,
+      ], {
+        color: c2
+      }),
+      new gll.face([
+        1, -1, 1,
+        -1, -1, 1,
+        1, -1, -1,
+      ], {
+        color: c2
+      }),
+
+
+
+      //front
+      new gll.face([
+        -1, 1, 1,
+        -1, -1, 1,
+        1, -1, 1,
+      ], {
+        color: c3
+      }),
+      new gll.face([
+        1, 1, 1,
+        -1, 1, 1,
+        1, -1, 1,
+      ], {
+        color: c3
+      }),
+
+      //back
+      new gll.face([
+        1, -1, -1,
+        -1, -1, -1,
+        -1, 1, -1,
+      ], {
+        color: c4
+      }),
+      new gll.face([
+        1, 1, -1,
+        1, -1, -1,
+        -1, 1, -1,
+      ], {
+        color: c4
+      }),
+
+
+
+      //left
+      new gll.face([
+        -1, 1, 1,
+        -1, 1, -1,
+        -1, -1, 1,
+      ], {
+        color: c5
+      }),
+      new gll.face([
+        -1, -1, -1,
+        -1, -1, 1,
+        -1, 1, -1,
+      ], {
+        color: c5
+      }),
+
+      //right
+      new gll.face([
+        1, 1, 1,
+        1, -1, 1,
+        1, 1, -1,
+      ], {
+        color: c6
+      }),
+      new gll.face([
+        1, -1, -1,
+        1, 1, -1,
+        1, -1, 1,
+      ], {
+        color: c6
+      }),
+    ]);
   }
 
 
@@ -230,18 +418,49 @@ function GLLib() {
     // this.opacity = options.opacity || 1;
     this.id = options.id || "";
   };
+  this.object.prototype.rotate = function (rotation) {
+    this.rotation[0] += rotation[0];
+    this.rotation[1] += rotation[1];
+    this.rotation[2] += rotation[2];
+  }
   this.object.prototype.calculateMatrix = function (m4) {
     var matrix = m4.basicMatrix();
     matrix = m4.translate(matrix, this.position[0], this.position[1], this.position[2]);
+    matrix = m4.scale(matrix, this.scale[0], this.scale[1], this.scale[2]);
     matrix = m4.xRotate(matrix, this.rotation[0]);
     matrix = m4.yRotate(matrix, this.rotation[1]);
     matrix = m4.zRotate(matrix, this.rotation[2]);
-    matrix = m4.scale(matrix, this.scale[0], this.scale[1], this.scale[2]);
     
     return matrix;
   };
   this.object.prototype.getGLBuffer = function () {
     return this.mesh.toGLBuffer();
+  };
+
+
+
+  this.camera = function(options) {
+    this.rotation = options.rotation || [0,0,0];
+    this.position = options.position || [0,0,0];
+    this.fov = options.fov || 1.22173;
+    this.near = options.near || 1;
+    this.far = options.far || 2000;
+  }
+  this.camera.prototype.createVeiwMatrix = function(m4,aspect) {
+    var projectionMatrix = m4.generatePerspectiveMatrix(this.fov, aspect, this.near, this.far);
+
+    var cameraMatrix = m4.basicMatrix();
+    cameraMatrix = m4.xRotate(cameraMatrix, this.rotation[0]);
+    cameraMatrix = m4.yRotate(cameraMatrix, this.rotation[1]);
+    cameraMatrix = m4.zRotate(cameraMatrix, this.rotation[2]);
+    cameraMatrix = m4.translate(cameraMatrix, this.position[0], this.position[1], this.position[2]);
+
+    var viewMatrix = m4.inverse(cameraMatrix);
+
+    var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+    this.matrixBuffer = viewProjectionMatrix;
+    
   };
 
 
@@ -294,7 +513,12 @@ function GLLib() {
   };
   this.scene.prototype.bindCanvas = function (canvas) {
     this.canvas = canvas;
-    this.gl = canvas.getContext("webgl2");
+    this.gl = canvas.getContext("webgl2", {
+      alpha: false
+    });
+  };
+  this.scene.prototype.setCamera = function (camera) {
+    this.camera = camera;
   };
   this.scene.prototype.bindGLL = function (gll) {
     this.gll = gll;
@@ -366,11 +590,16 @@ function GLLib() {
   };
   this.scene.prototype.render = function () {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-    this.gl.clearColor(0, 0, 0, 0.3);
+    this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.CULL_FACE);
     this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     this.gl.useProgram(this.program);
+
+    var aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+    this.camera.createVeiwMatrix(this.m4, aspect);
 
     var objs = Object.values(this.objects);
     for (var i = 0; i < objs.length; i++) {
@@ -378,6 +607,7 @@ function GLLib() {
       var va = iobj.vertexArr;
       var ca = iobj.colorArr;
       var ma = objs[i].calculateMatrix(this.m4);
+      ma = this.m4.multiply(this.camera.matrixBuffer, ma);
 
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
       this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(va), this.gl.DYNAMIC_DRAW);
@@ -395,7 +625,7 @@ function GLLib() {
 
       this.gl.enableVertexAttribArray(this.colorLocation);
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-      size = 3;
+      size = 4;
       type = this.gl.UNSIGNED_BYTE;
       normalize = true;
       stride = 0;
