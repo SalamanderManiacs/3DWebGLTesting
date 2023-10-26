@@ -2,13 +2,12 @@ function GLLib() {
   this.generateBasicUUID = function () {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
       var r = Math.random() * 16;
-      return (c === 'x' ? r : (r & (0x3 | 0x8))).toString(16);
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
   };
   this.deg = function(r) {
     return r * 180 / Math.PI;
   }
-
   this.rad = function(d) {
     return d * Math.PI / 180;
   }
@@ -26,6 +25,14 @@ function GLLib() {
         0, 0, (near + far) * rangeInv, -1,
         0, 0, near * far * rangeInv * 2, 0
       ];
+    }
+    this.basicMatrix = function() {
+      return [
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+      ]
     }
     this.multiply = function(a, b) {
       var a00 = a[0 * 4 + 0];
@@ -217,11 +224,21 @@ function GLLib() {
       0, 1,
       1, 1
     ])]);
-    // this.rotation = options.rotation || [0,0,0];
-    // this.position = options.position || [0,0,0];
-    // this.scale = options.scale || [0,0,0];
+    this.rotation = options.rotation || [0,0,0];
+    this.position = options.position || [0,0,0];
+    this.scale = options.scale || [1,1,1];
     // this.opacity = options.opacity || 1;
-    this.id = options.id || generateBasicUUID();
+    this.id = options.id || "";
+  };
+  this.object.prototype.calculateMatrix = function (m4) {
+    var matrix = m4.basicMatrix();
+    matrix = m4.translate(matrix, this.position[0], this.position[1], this.position[2]);
+    matrix = m4.xRotate(matrix, this.rotation[0]);
+    matrix = m4.yRotate(matrix, this.rotation[1]);
+    matrix = m4.zRotate(matrix, this.rotation[2]);
+    matrix = m4.scale(matrix, this.scale[0], this.scale[1], this.scale[2]);
+    
+    return matrix;
   };
   this.object.prototype.getGLBuffer = function () {
     return this.mesh.toGLBuffer();
@@ -238,10 +255,12 @@ function GLLib() {
       attribute vec4 a_position;
       attribute vec4 a_color;
 
+      uniform mat4 u_matrix;
+
       varying vec4 v_color;
 
       void main() {
-        gl_Position = a_position;
+        gl_Position = u_matrix * a_position;
 
         v_color = a_color;
       }
@@ -261,6 +280,9 @@ function GLLib() {
     };
   };
   this.scene.prototype.addObject = function (object) {
+    if (object.id == "") {
+      object.id = this.uuidGen();
+    }
     this.objects[object.id] = object;
   };
   this.scene.prototype.getObjectByID = function (id) {
@@ -273,6 +295,13 @@ function GLLib() {
   this.scene.prototype.bindCanvas = function (canvas) {
     this.canvas = canvas;
     this.gl = canvas.getContext("webgl2");
+  };
+  this.scene.prototype.bindGLL = function (gll) {
+    this.gll = gll;
+    this.m4 = new gll.matrix4();
+    this.uuidGen = gll.generateBasicUUID;
+    this.deg = gll.deg;
+    this.rad = gll.rad;
   };
   this.scene.prototype.compileShader = function (type) {
     var source;
@@ -293,7 +322,6 @@ function GLLib() {
       }
       return true;
     } else {
-      alert("Error Compiling Shader " + this.gl.getShaderInfoLog(shader));
       this.gl.deleteShader(shader);
       return false;
     }
@@ -323,6 +351,8 @@ function GLLib() {
   this.scene.prototype.setupLocations = function () {
     this.vertexLocation = this.gl.getAttribLocation(this.program, "a_position");
     this.colorLocation = this.gl.getAttribLocation(this.program, "a_color");
+
+    this.matrixLocation = this.gl.getUniformLocation(this.program, "u_matrix");
   };
   this.scene.prototype.setupBuffers = function () {
     this.vertexBuffer = this.gl.createBuffer();
@@ -347,6 +377,7 @@ function GLLib() {
       var iobj = objs[i].getGLBuffer();
       var va = iobj.vertexArr;
       var ca = iobj.colorArr;
+      var ma = objs[i].calculateMatrix(this.m4);
 
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
       this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(va), this.gl.DYNAMIC_DRAW);
@@ -370,6 +401,8 @@ function GLLib() {
       stride = 0;
       offset = 0;
       this.gl.vertexAttribPointer(this.colorLocation, size, type, normalize, stride, offset);
+
+      this.gl.uniformMatrix4fv(this.matrixLocation, false, ma);
 
       var primitiveType = this.gl.TRIANGLES;
       offset = 0;

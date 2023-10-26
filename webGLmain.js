@@ -14,6 +14,7 @@ window.addEventListener('resize', resizeCanvas);
 var gll = new GLLib();
 
 var scene = new gll.scene();
+scene.bindGLL(gll);
 var canvas = document.getElementById("webGLCanvas");
 scene.bindCanvas(canvas);
 scene.prep();
