@@ -219,7 +219,7 @@ function GLLib() {
 
     var primitiveType = this.gl.TRIANGLES;
     offset = 0;
-    var count = buffers.vertexArr.length;
+    var count = buffers.vertexArr.length / 3;
     this.gl.drawArrays(primitiveType, offset, count);
   };
   this.scene.prototype.renderNoRefresh = function () {
