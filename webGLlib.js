@@ -235,6 +235,16 @@ function GLLib() {
     this.scale = function(m, sx, sy, sz) {
       return this.multiply(m, this.scalingMatrix(sx, sy, sz));
     }
+    this.normalize = function(v, dst) {
+      dst = dst || [];
+      var length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+      if (length > 0.00001) {
+        dst[0] = v[0] / length;
+        dst[1] = v[1] / length;
+        dst[2] = v[2] / length;
+      }
+      return dst;
+    }
   }
 
 
@@ -245,11 +255,117 @@ function GLLib() {
     if (this.color.length == 3) {
       this.color.push(255);
     }
+    this.normal = [];
+    log(this.normal);
+    if (this.points.length > 3) {
+      this.normal = [this.points[0],this.points[1],this.points[2]];
+    }
+    log(this.normal);
+    for(var i = 3; i < this.points.length; i+=3) {
+      this.normal = [(this.normal[0]+this.points[i])/2,(this.normal[1]+this.points[i+1])/2,(this.normal[2]+this.points[i+2])/2];
+    }
   };
   this.face.prototype.toString = function () {
     return "face[" + this.points + "]";
   };
 
+
+  this.sphereMesh3D = function(gll, options) {
+    var color = options.color || [255,255,255];
+    var lat = options.lon*2 || 10;
+    var lon = options.lat*2 || 10;
+    log([lat,lon])
+    var mesh = new gll.mesh([]);
+    points = [];
+    for (var m = 0; m < lat + 1; m++) {
+      points[m-1] = [];
+      for (var n = 0; n < lon; n++) {
+        x = Math.sin(Math.PI * m / lat) * Math.sin(2 * Math.PI * n / lon);
+        y = Math.cos(Math.PI * m / lat);
+        z = Math.sin(Math.PI * m / lat) * Math.cos(2 * Math.PI * n / lon);
+        if (((m + 1) % 2) == 0) {
+          points[m-1][n] = [x,y,z];
+        } else { 
+          points[m-1][n] = [x,y,z];
+        }
+        //var face = new gll.face([x,y,z],{color:color});
+        //mesh.addFace(face);
+      }
+    }
+    for (var m = 0; m < lat - 1; m++) {
+      var pointListBelow = points[m-1];
+      var pointList = points[m];
+      var pointListAbove = points[m+1];
+      for (var n = 0; n < lon; n++) {
+        var indexMinus = (n-1);
+        if (indexMinus == -1) {
+          indexMinus = pointListAbove.length-1;
+        }
+        var xyz1, xyz2, xyz3;
+        xyz1 = pointList[n];
+        xyz2 = pointListAbove[n];
+        xyz3 = pointListAbove[indexMinus];
+        var face = new gll.face([
+          xyz1[0], xyz1[1], xyz1[2],
+          xyz2[0], xyz2[1], xyz2[2],
+          xyz3[0], xyz3[1], xyz3[2]
+        ], {
+          color: color
+        });
+        mesh.addFace(face);
+
+        var indexPlus = ((n + 1) % pointList.length);
+        var xyz1, xyz2, xyz3;
+        xyz1 = pointList[n];
+        xyz2 = pointListBelow[n];
+        xyz3 = pointListBelow[indexPlus];
+        var face = new gll.face([
+          xyz1[0], xyz1[1], xyz1[2],
+          xyz2[0], xyz2[1], xyz2[2],
+          xyz3[0], xyz3[1], xyz3[2]
+        ], {
+          color: color
+        });
+        mesh.addFace(face);
+      }
+    }
+    var pointListAbove = points[0];
+    for (var n = 0; n < lon; n++) {
+      var indexMinus = (n-1);
+      if (indexMinus == -1) {
+        indexMinus = pointListAbove.length-1;
+      }
+      var xyz1, xyz2, xyz3;
+      xyz1 = [0, 1, 0];
+      xyz2 = pointListAbove[n];
+      xyz3 = pointListAbove[indexMinus];
+      var face = new gll.face([
+        xyz1[0], xyz1[1], xyz1[2],
+        xyz2[0], xyz2[1], xyz2[2],
+        xyz3[0], xyz3[1], xyz3[2]
+      ], {
+        color: color
+      });
+      mesh.addFace(face);
+    }
+    var pointListBelow = points[points.length-2];
+    for (var n = 0; n < lon; n++) {
+      var indexPlus = ((n + 1) % pointListBelow.length);
+      var xyz1, xyz2, xyz3;
+      xyz1 = [0, -1, 0];
+      xyz2 = pointListBelow[n];
+      xyz3 = pointListBelow[indexPlus];
+      var face = new gll.face([
+        xyz1[0], xyz1[1], xyz1[2],
+        xyz2[0], xyz2[1], xyz2[2],
+        xyz3[0], xyz3[1], xyz3[2]
+      ], {
+        color: color
+      });
+      mesh.addFace(face);
+    }
+    return mesh; 
+  }
 
 
   this.rectMesh3D = function(gll, options) {
@@ -376,18 +492,23 @@ function GLLib() {
 
 
   this.mesh = function (faces) {
-    this.faces = faces;
+    this.faces = faces || [];
+  };
+  this.mesh.prototype.addFace = function (f) {
+    this.faces.push(f);
   };
   this.mesh.prototype.toGLBuffer = function () {
     var obj = {
       vertexArr: [],
       colorArr: [],
+      normalArr: [],
     };
     for (var i = 0; i < this.faces.length; i++) {
       var points = this.faces[i].points;
       obj.vertexArr = obj.vertexArr.concat(points);
       for (var n = 0; n < points.length / 3; n++) {
         obj.colorArr = obj.colorArr.concat(this.faces[i].color);
+        obj.normalArr = obj.normalArr.concat(this.faces[i].normal);
       }
     }
     return obj;
@@ -473,13 +594,16 @@ function GLLib() {
 
       attribute vec4 a_position;
       attribute vec4 a_color;
+      attribute vec3 a_normal;
 
       uniform mat4 u_matrix;
 
       varying vec4 v_color;
+      varying vec3 v_normal;
 
       void main() {
         gl_Position = u_matrix * a_position;
+        gl_PointSize = 5.0;
 
         v_color = a_color;
       }
@@ -490,9 +614,18 @@ function GLLib() {
       precision highp float;
 
       varying vec4 v_color;
+      varying vec3 v_normal;
+
+      uniform vec3 u_reverseLightDirection;
 
       void main() {
+        vec3 normal = normalize(v_normal);
+
+        float light = dot(normal, u_reverseLightDirection);
+
         gl_FragColor = v_color;
+
+        gl_FragColor.rgb *= light;
       }
 
     `
@@ -575,20 +708,92 @@ function GLLib() {
   this.scene.prototype.setupLocations = function () {
     this.vertexLocation = this.gl.getAttribLocation(this.program, "a_position");
     this.colorLocation = this.gl.getAttribLocation(this.program, "a_color");
+    this.normalLocation = this.gl.getAttribLocation(this.program, "a_normal");
 
     this.matrixLocation = this.gl.getUniformLocation(this.program, "u_matrix");
+    this.reverseLightDirLocation = this.gl.getUniformLocation(this.program, "u_reverseLightDirection");
+    
   };
   this.scene.prototype.setupBuffers = function () {
     this.vertexBuffer = this.gl.createBuffer();
     this.colorBuffer = this.gl.createBuffer();
+    this.normalBuffer = this.gl.createBuffer();
   };
   this.scene.prototype.prep = function () {
-    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     this.compileProgram();
     this.setupLocations();
     this.setupBuffers();
   };
   this.scene.prototype.render = function () {
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.gl.clearColor(1, 1, 1, 1);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.enable(this.gl.CULL_FACE);
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    this.gl.useProgram(this.program);
+
+    var aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+    this.camera.createVeiwMatrix(this.m4, aspect);
+    var camPos = camera.position;
+    var reverseLightDir = m4.normalize([camPos.x*-1,camPos.y*-1,camPos.z*-1]);
+
+    var objs = Object.values(this.objects);
+    for (var i = 0; i < objs.length; i++) {
+      var iobj = objs[i].getGLBuffer();
+      var va = iobj.vertexArr;
+      var ca = iobj.colorArr;
+      var na = iobj.normalArr;
+      var ma = objs[i].calculateMatrix(this.m4);
+      ma = this.m4.multiply(this.camera.matrixBuffer, ma);
+
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(va), this.gl.DYNAMIC_DRAW);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, new Uint8Array(ca), this.gl.DYNAMIC_DRAW);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(na), this.gl.DYNAMIC_DRAW);
+      
+      this.gl.enableVertexAttribArray(this.vertexLocation);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+      var size = 3;
+      var type = this.gl.FLOAT;
+      var normalize = false;
+      var stride = 0;
+      var offset = 0;
+      this.gl.vertexAttribPointer(this.vertexLocation, size, type, normalize, stride, offset);
+
+      this.gl.enableVertexAttribArray(this.colorLocation);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+      size = 4;
+      type = this.gl.UNSIGNED_BYTE;
+      normalize = true;
+      stride = 0;
+      offset = 0;
+      this.gl.vertexAttribPointer(this.colorLocation, size, type, normalize, stride, offset);
+
+      his.gl.enableVertexAttribArray(this.normalLocation);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+      var size = 3;
+      var type = this.gl.FLOAT;
+      var normalize = false;
+      var stride = 0;
+      var offset = 0;
+      this.gl.vertexAttribPointer(this.normalLocation, size, type, normalize, stride, offset);
+
+      this.gl.uniformMatrix4fv(this.matrixLocation, false, ma);
+      this.gl.uniform3fv(this.reverseLightDirLocation, reverseLightDir);
+
+      var primitiveType = this.gl.TRIANGLES;
+      offset = 0;
+      var count = va.length / 3;
+      this.gl.drawArrays(primitiveType, offset, count);
+    }
+  };
+
+  this.scene.prototype.renderPoints = function () {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -606,6 +811,7 @@ function GLLib() {
       var iobj = objs[i].getGLBuffer();
       var va = iobj.vertexArr;
       var ca = iobj.colorArr;
+      var na = iobj.normalArr;
       var ma = objs[i].calculateMatrix(this.m4);
       ma = this.m4.multiply(this.camera.matrixBuffer, ma);
 
@@ -634,7 +840,7 @@ function GLLib() {
 
       this.gl.uniformMatrix4fv(this.matrixLocation, false, ma);
 
-      var primitiveType = this.gl.TRIANGLES;
+      var primitiveType = this.gl.POINTS;
       offset = 0;
       var count = va.length / 3;
       this.gl.drawArrays(primitiveType, offset, count);
